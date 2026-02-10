@@ -1,39 +1,41 @@
-import axios from 'axios';
+import axios from "axios";
 
 export const askAI = async (question) => {
-  try {
-    const API_KEY = process.env.GEMINI_API_KEY;
-
-    if (!API_KEY) {
-      throw new Error("No API Key");
+ try {
+  const response = await axios.post(
+   `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+   {
+    contents: [
+     {
+      parts: [
+       {
+        text: `Reply with EXACTLY ONE WORD. No punctuation. Question: ${question}`
+       }
+      ]
+     }
+    ],
+    generationConfig: {
+      temperature: 0,
+      maxOutputTokens: 5
     }
-const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${API_KEY}`;
+   },
+   {
+    timeout: 4000
+   }
+  );
 
+  const text =
+   response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
+  if (!text) return "unknown";
 
-    const payload = {
-      contents: [{
-        parts: [{
-          text: question + ". Reply in one word only."
-        }]
-      }]
-    };
+  return text
+   .trim()
+   .replace(/[^a-zA-Z]/g, "")
+   .split(/\s+/)[0] || "unknown";
 
-    const result = await axios.post(url, payload, {
-      headers: {
-        "Content-Type": "application/json"
-      }
-    });
-
-    let text =
-      result?.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!text) return "Unknown";
-
-    return text.trim().split(/\s+/)[0];
-
-  } catch (err) {
-    console.log("AI ERROR:", err.response?.data || err.message);
-    throw err;
-  }
+ } catch (err) {
+  console.log("Gemini error:", err.response?.data || err.message);
+  return "unknown";
+ }
 };
